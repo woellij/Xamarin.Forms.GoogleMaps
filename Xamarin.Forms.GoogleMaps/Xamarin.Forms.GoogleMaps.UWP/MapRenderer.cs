@@ -13,6 +13,7 @@ using Xamarin.Forms.GoogleMaps.Extensions.UWP;
 using Xamarin.Forms.GoogleMaps.Internals;
 using Xamarin.Forms.GoogleMaps.Logics;
 using Xamarin.Forms.GoogleMaps.Logics.UWP;
+using Xamarin.Forms.GoogleMaps.UWP.Logics;
 #if WINDOWS_UWP
 using Xamarin.Forms.Platform.UWP;
 
@@ -29,8 +30,10 @@ namespace Xamarin.Forms.GoogleMaps.UWP
 namespace Xamarin.Forms.Maps.WinRT
 #endif
 {
-    public class MapRenderer : ViewRenderer<Map, MapControl>, IMapRequestDelegate
+    public class MapRenderer : ViewRenderer<Map, MapControl>
     {
+        private readonly CameraLogic _cameraLogic = new CameraLogic();
+
         private Map Map
         {
             get { return Element as Map; }
@@ -61,11 +64,11 @@ namespace Xamarin.Forms.Maps.WinRT
             if (e.OldElement != null)
             {
                 var mapModel = e.OldElement;
-                Map.OnMoveToRegion = null;
+                _cameraLogic.Unregister();
 
                 if (oldMapView != null)
                 {
-                    oldMapView.ActualCameraChanged  -= OnActualCameraChanged;
+                    oldMapView.ActualCameraChanged -= OnActualCameraChanged;
                     oldMapView.ZoomLevelChanged -= OnZoomLevelChanged;
                 }
             }
@@ -79,15 +82,16 @@ namespace Xamarin.Forms.Maps.WinRT
                     Control.MapServiceToken = FormsGoogleMaps.AuthenticationToken;
                     Control.TrafficFlowVisible = Map.IsTrafficEnabled;
                     Control.ZoomLevelChanged += OnZoomLevelChanged;
-                    Control.CenterChanged += async (s, a) => await UpdateVisibleRegion();
+                    Control.CenterChanged += (s, a) => UpdateVisibleRegion();
                     Control.ActualCameraChanged += OnActualCameraChanged;
                 }
 
-                Map.OnMoveToRegion = ((IMapRequestDelegate)this).OnMoveToRegion;
+                _cameraLogic.Register(Map, NativeMap);
 
                 UpdateMapType();
                 UpdateHasScrollEnabled();
                 UpdateHasZoomEnabled();
+                UpdateHasRotationEnabled();
 
                 await UpdateIsShowingUser();
 
@@ -100,16 +104,22 @@ namespace Xamarin.Forms.Maps.WinRT
             }
         }
 
-        private async void OnZoomLevelChanged(MapControl sender, object args)
+        private void OnZoomLevelChanged(MapControl sender, object args)
         {
+            if (Map == null)
+            {
+                return;
+            }
+        
             var camera = sender.ActualCamera;
             var pos = new CameraPosition(
                 camera.Location.Position.ToPosition(),
+                sender.ZoomLevel,
                 camera.Roll,
-                camera.Pitch,
-                sender.ZoomLevel);
+                camera.Pitch);
+            Map.CameraPosition = pos;
+            UpdateVisibleRegion();
             Map.SendCameraChanged(pos);
-            await UpdateVisibleRegion();
         }
 
         private void OnActualCameraChanged(MapControl sender, MapActualCameraChangedEventArgs args)
@@ -117,10 +127,10 @@ namespace Xamarin.Forms.Maps.WinRT
             var camera = args.Camera;
             var pos = new CameraPosition(
                 camera.Location.Position.ToPosition(),
-                camera.Roll,
-                camera.Pitch,
-                sender.ZoomLevel);
-            Map.SendCameraChanged(pos);
+                sender.ZoomLevel,
+                camera.Heading,
+                camera.Pitch);
+            Map?.SendCameraChanged(pos);
         }
 
         protected override async void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -137,6 +147,8 @@ namespace Xamarin.Forms.Maps.WinRT
                 UpdateHasZoomEnabled();
             else if (e.PropertyName == Map.IsTrafficEnabledProperty.PropertyName)
                 Control.TrafficFlowVisible = Map.IsTrafficEnabled;
+            else if (e.PropertyName == Map.HasRotationEnabledProperty.PropertyName)
+                UpdateHasRotationEnabled();
 
             foreach (var logic in _logics)
             {
@@ -150,7 +162,7 @@ namespace Xamarin.Forms.Maps.WinRT
             {
                 _disposed = true;
 
-                Map.OnMoveToRegion = null;
+                _cameraLogic.Unregister();
             }
             base.Dispose(disposing);
         }
@@ -176,52 +188,88 @@ namespace Xamarin.Forms.Maps.WinRT
                 Control.Children.Remove(_userPositionCircle);
         }
 
-        async Task MoveToRegion(MapSpan span, MapAnimationKind animation = MapAnimationKind.Bow)
-        {
-            var nw = new BasicGeoposition
-            {
-                Latitude = span.Center.Latitude + span.LatitudeDegrees / 2,
-                Longitude = span.Center.Longitude - span.LongitudeDegrees / 2
-            };
-            var se = new BasicGeoposition
-            {
-                Latitude = span.Center.Latitude - span.LatitudeDegrees / 2,
-                Longitude = span.Center.Longitude + span.LongitudeDegrees / 2
-            };
-            var boundingBox = new GeoboundingBox(nw, se);
-            await Control.TrySetViewBoundsAsync(boundingBox, null, animation);
-        }
-
-        async Task UpdateVisibleRegion()
+        void UpdateVisibleRegion()
         {
             if (Control == null || Element == null)
                 return;
 
             if (!_firstZoomLevelChangeFired)
             {
-                await MoveToRegion(Element.LastMoveToRegion, MapAnimationKind.None);
+                _cameraLogic.MoveCamera(Map.InitialCameraUpdate);
+
                 _firstZoomLevelChangeFired = true;
                 return;
             }
-            Geopoint nw, se = null;
+
             try
             {
-                Control.GetLocationFromOffset(new Windows.Foundation.Point(0, 0), out nw);
-                Control.GetLocationFromOffset(new Windows.Foundation.Point(Control.ActualWidth, Control.ActualHeight), out se);
+                var boundingBox = GetBounds(this.Control);
+                if (boundingBox != null)
+                {
+                    var center = new Position(boundingBox.Center.Latitude, boundingBox.Center.Longitude);
+                    var latitudeDelta = Math.Abs(center.Latitude - boundingBox.NorthwestCorner.Latitude);
+                    var longitudeDelta = Math.Abs(center.Longitude - boundingBox.NorthwestCorner.Longitude);
+                    Element.VisibleRegion = new MapSpan(center, latitudeDelta, longitudeDelta);
+                }
             }
             catch (Exception)
             {
-                return;
+                //couldnt update visible region
+            }
+        }
+
+        private static GeoboundingBox GetBounds(MapControl map)
+        {
+            Geopoint topLeft = null;
+
+            try
+            {
+                map.GetLocationFromOffset(new Windows.Foundation.Point(0, 0), out topLeft);
+            }
+            catch
+            {
+                var topOfMap = new Geopoint(new BasicGeoposition()
+                {
+                    Latitude = 85,
+                    Longitude = 0
+                });
+
+                Windows.Foundation.Point topPoint;
+                map.GetOffsetFromLocation(topOfMap, out topPoint);
+                map.GetLocationFromOffset(new Windows.Foundation.Point(0, topPoint.Y), out topLeft);
             }
 
-            if (nw != null && se != null)
+            Geopoint bottomRight = null;
+            try
             {
-                var boundingBox = new GeoboundingBox(nw.Position, se.Position);
-                var center = new Position(boundingBox.Center.Latitude, boundingBox.Center.Longitude);
-                var latitudeDelta = Math.Abs(center.Latitude - boundingBox.NorthwestCorner.Latitude);
-                var longitudeDelta = Math.Abs(center.Longitude - boundingBox.NorthwestCorner.Longitude);
-                Element.VisibleRegion = new MapSpan(center, latitudeDelta, longitudeDelta);
+                map.GetLocationFromOffset(new Windows.Foundation.Point(map.ActualWidth, map.ActualHeight), out bottomRight);
             }
+            catch
+            {
+                var bottomOfMap = new Geopoint(new BasicGeoposition()
+                {
+                    Latitude = -85,
+                    Longitude = 0
+                });
+
+                Windows.Foundation.Point bottomPoint;
+                map.GetOffsetFromLocation(bottomOfMap, out bottomPoint);
+                map.GetLocationFromOffset(new Windows.Foundation.Point(bottomPoint.X, bottomPoint.Y), out bottomRight);
+            }
+
+            if (topLeft != null && bottomRight != null)
+            {
+                try
+                {
+                    return new GeoboundingBox(topLeft.Position, bottomRight.Position);
+                }
+                catch
+                {
+                    return null;
+                }
+            }
+
+            return null;
         }
 
         void LoadUserPosition(Geocoordinate userCoordinate, bool center)
@@ -294,9 +342,9 @@ namespace Xamarin.Forms.Maps.WinRT
             Control.PanInteractionMode = Element.HasScrollEnabled ? MapPanInteractionMode.Auto : MapPanInteractionMode.Disabled;
         }
 
-        async void IMapRequestDelegate.OnMoveToRegion(MoveToRegionMessage m)
+        void UpdateHasRotationEnabled()
         {
-            await MoveToRegion(m.Span, m.Animate ? MapAnimationKind.Bow : MapAnimationKind.None);
+            Control.RotateInteractionMode = Element.HasRotationEnabled ? MapInteractionMode.Auto : MapInteractionMode.Disabled;
         }
 #else
         void UpdateHasZoomEnabled()
@@ -304,6 +352,10 @@ namespace Xamarin.Forms.Maps.WinRT
         }
 
         void UpdateHasScrollEnabled()
+        {
+        }
+
+        void UpdateHasRotationEnabled()
         {
         }
 #endif

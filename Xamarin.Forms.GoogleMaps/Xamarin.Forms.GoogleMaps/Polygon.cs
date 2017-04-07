@@ -7,14 +7,16 @@ namespace Xamarin.Forms.GoogleMaps
 {
     public sealed class Polygon : BindableObject
     {
-        public static readonly BindableProperty StrokeWidthProperty = BindableProperty.Create("StrokeWidth", typeof(float), typeof(float), 1f);
-        public static readonly BindableProperty StrokeColorProperty = BindableProperty.Create("StrokeColor", typeof(Color), typeof(Color), Color.Blue);
-        public static readonly BindableProperty FillColorProperty = BindableProperty.Create("FillColor", typeof(Color), typeof(Color), Color.Blue);
-        public static readonly BindableProperty IsClickableProperty = BindableProperty.Create("IsClickable", typeof(bool), typeof(bool), false);
+        public static readonly BindableProperty StrokeWidthProperty = BindableProperty.Create(nameof(StrokeWidth), typeof(float), typeof(float), 1f);
+        public static readonly BindableProperty StrokeColorProperty = BindableProperty.Create(nameof(StrokeColor), typeof(Color), typeof(Color), Color.Blue);
+        public static readonly BindableProperty FillColorProperty = BindableProperty.Create(nameof(FillColor), typeof(Color), typeof(Color), Color.Blue);
+        public static readonly BindableProperty IsClickableProperty = BindableProperty.Create(nameof(IsClickable), typeof(bool), typeof(bool), false);
 
         private readonly ObservableCollection<Position> _positions = new ObservableCollection<Position>();
+        private readonly ObservableCollection<Position[]> _holes = new ObservableCollection<Position[]>();
 
         private Action<Polygon, NotifyCollectionChangedEventArgs> _positionsChangedHandler = null;
+        private Action<Polygon, NotifyCollectionChangedEventArgs> _holesChangedHandler = null;
 
         public float StrokeWidth
         {
@@ -38,6 +40,11 @@ namespace Xamarin.Forms.GoogleMaps
         {
             get { return (bool)GetValue(IsClickableProperty); }
             set { SetValue(IsClickableProperty, value); }
+        }
+
+        public IList<Position[]> Holes
+        {
+            get { return _holes; }
         }
 
         public IList<Position> Positions
@@ -69,14 +76,36 @@ namespace Xamarin.Forms.GoogleMaps
         {
             _positionsChangedHandler = handler;
             if (handler != null)
-                _positions.CollectionChanged += OnCollectionChanged;
+            {
+                _positions.CollectionChanged += OnPositionsChanged;
+            }
             else
-                _positions.CollectionChanged -= OnCollectionChanged;
+            {
+                _positions.CollectionChanged -= OnPositionsChanged;
+            }
         }
 
-        void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        internal void SetOnHolesChanged(Action<Polygon, NotifyCollectionChangedEventArgs> handler)
+        {
+            _holesChangedHandler = handler;
+            if (handler != null)
+            {
+                _holes.CollectionChanged += OnHolesChanged;
+            }
+            else
+            {
+                _holes.CollectionChanged -= OnHolesChanged;
+            }
+        }
+
+        void OnPositionsChanged(object sender, NotifyCollectionChangedEventArgs e)
         {
             _positionsChangedHandler?.Invoke(this, e);
+        }
+
+        void OnHolesChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            _holesChangedHandler?.Invoke(this, e);
         }
     }
 }

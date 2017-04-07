@@ -4,23 +4,27 @@ namespace Xamarin.Forms.GoogleMaps
 {
     public sealed class Pin : BindableObject
     {
-        public static readonly BindableProperty TypeProperty = BindableProperty.Create("Type", typeof(PinType), typeof(Pin), default(PinType));
+        public static readonly BindableProperty TypeProperty = BindableProperty.Create(nameof(Type), typeof(PinType), typeof(Pin), default(PinType));
 
-        public static readonly BindableProperty PositionProperty = BindableProperty.Create("Position", typeof(Position), typeof(Pin), default(Position));
+        public static readonly BindableProperty PositionProperty = BindableProperty.Create(nameof(Position), typeof(Position), typeof(Pin), default(Position));
 
-        public static readonly BindableProperty LabelProperty = BindableProperty.Create("Label", typeof(string), typeof(Pin), default(string));
+        public static readonly BindableProperty LabelProperty = BindableProperty.Create(nameof(Label), typeof(string), typeof(Pin), default(string));
 
-        public static readonly BindableProperty AddressProperty = BindableProperty.Create("Address", typeof(string), typeof(Pin), default(string));
+        public static readonly BindableProperty AddressProperty = BindableProperty.Create(nameof(Address), typeof(string), typeof(Pin), default(string));
 
-        public static readonly BindableProperty IconProperty = BindableProperty.Create("Icon", typeof(BitmapDescriptor), typeof(Pin), default(BitmapDescriptor));
+        public static readonly BindableProperty IconProperty = BindableProperty.Create(nameof(Icon), typeof(BitmapDescriptor), typeof(Pin), default(BitmapDescriptor));
 
-        public static readonly BindableProperty IsDraggableProperty = BindableProperty.Create("IsDraggable", typeof(bool), typeof(Pin), false);
+        public static readonly BindableProperty IsDraggableProperty = BindableProperty.Create(nameof(IsDraggable), typeof(bool), typeof(Pin), false);
 
-        public static readonly BindableProperty RotationProperty = BindableProperty.Create("Rotation", typeof(float), typeof(Pin), 0f);
+        public static readonly BindableProperty RotationProperty = BindableProperty.Create(nameof(Rotation), typeof(float), typeof(Pin), 0f);
 
-        public static readonly BindableProperty IsVisibleProperty = BindableProperty.Create("IsVisible", typeof(bool), typeof(Pin), true);
+        public static readonly BindableProperty IsVisibleProperty = BindableProperty.Create(nameof(IsVisible), typeof(bool), typeof(Pin), true);
 
-        public static readonly BindableProperty AnchorProperty = BindableProperty.Create("Anchor", typeof(Point), typeof(Pin), new Point(0.5d, 1.0d));
+        public static readonly BindableProperty AnchorProperty = BindableProperty.Create(nameof(Anchor), typeof(Point), typeof(Pin), new Point(0.5d, 1.0d));
+
+        public static readonly BindableProperty FlatProperty = BindableProperty.Create(nameof(Flat), typeof(bool), typeof(Pin), false);
+
+        public static readonly BindableProperty InfoWindowAnchorProperty = BindableProperty.Create(nameof(InfoWindowAnchor), typeof(Point), typeof(Pin), new Point(0.5d, 1.0d));
 
         public string Label
         {
@@ -74,6 +78,18 @@ namespace Xamarin.Forms.GoogleMaps
         {
             get { return (Point)GetValue(AnchorProperty); }
             set { SetValue(AnchorProperty, value); }
+        }
+
+        public bool Flat
+        {
+            get { return (bool)GetValue(FlatProperty); }
+            set { SetValue(FlatProperty, value); }
+        }
+
+        public Point InfoWindowAnchor
+        {
+            get { return (Point) GetValue(InfoWindowAnchorProperty); }
+            set { SetValue(InfoWindowAnchorProperty, value);}
         }
 
         public object Tag { get; set; }

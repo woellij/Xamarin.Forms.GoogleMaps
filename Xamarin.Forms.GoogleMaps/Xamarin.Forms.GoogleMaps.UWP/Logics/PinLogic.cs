@@ -64,6 +64,10 @@ namespace Xamarin.Forms.GoogleMaps.Logics.UWP
             pushpin.Tapped += Pushpin_Tapped;
             pushpin.Holding += Pushpin_Holding;
 
+            pushpin.Visibility = outerItem?.IsVisible ?? false ?
+                Windows.UI.Xaml.Visibility.Visible :
+                Windows.UI.Xaml.Visibility.Collapsed;
+
             NativeMap.Children.Add(pushpin);
             return pushpin;
         }
@@ -169,12 +173,17 @@ namespace Xamarin.Forms.GoogleMaps.Logics.UWP
 
         protected override void OnUpdateIsVisible(Pin outerItem, PushPin nativeItem)
         {
-            nativeItem.Visibility = outerItem?.IsVisible ?? false ? 
-                Windows.UI.Xaml.Visibility.Visible : 
+            nativeItem.Visibility = outerItem?.IsVisible ?? false ?
+                Windows.UI.Xaml.Visibility.Visible :
                 Windows.UI.Xaml.Visibility.Collapsed;
         }
 
         protected override void OnUpdateAnchor(Pin outerItem, PushPin nativeItem)
+        {
+            //not implemented
+        }
+
+        protected override void OnUpdateFlat(Pin outerItem, PushPin nativeItem)
         {
             //not implemented
         }

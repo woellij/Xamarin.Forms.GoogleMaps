@@ -1,5 +1,59 @@
 Xamarin.Forms.GoogleMaps Release Notes
 ----
+# 1.8.0-beta7
+
+## New Features
+
+* #255 [Android/iOS]Add Pin.Flat property
+* PR#257 [UWP]Support Map.HasRotationEnabled
+
+## Bug Fixes
+
+* #246 [Android]NullPointerException occurs when reused BitmapDescriptorFactory.FromStream()
+* PR#258 [UWP]CameraPosition Arguments were in wrong order
+
+# 1.8.0-beta6
+
+## New Features
+
+* #71 [iOS/Android]Add Map.Padding property
+* #84 [iOS/Android]Add Map.HasRotationEnabled property
+
+## Bug Fixes
+
+* #231 Fix Pin.IsVisible does not used when native marker created
+* #216 [UWP]Fix Map.VisibleRegion is null when first CameraChanged
+* #205 [iOS/Android] Move Map camera to correct region on layout change(from XF.Maps)
+
+# 1.8.0-beta5
+
+## New Features
+
+* #196 Add Map.InitialCameraUpdate property
+* #202 Add Map.CameraPosition property
+
+## Bug Fixes
+
+* #197 [iOS]Fix GroundOverlay.Transparency is incorrect
+
+# 1.8.0-beta4
+
+## New Features
+
+* #7 Add AnimateCamera method
+
+## Bug Fixes
+
+* #192 [UWP]Map.MoveCamera(CameraUpdateFactory.NewBounds(…)) does not reset rotation
+* #189 [iOS]CameraPositionChanged does not raise when call MoveCamera with CameraUpdate.FitBounds
+
+# 1.8.0-beta3
+
+## New Features
+
+* #7 Add CameraChanged event
+* #7 Add MoveCamera method
+
 # 1.8.0-beta2
 
 ## New Features

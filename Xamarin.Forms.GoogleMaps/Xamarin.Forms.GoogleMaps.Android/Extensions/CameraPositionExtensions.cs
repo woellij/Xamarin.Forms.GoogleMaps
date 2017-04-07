@@ -9,10 +9,15 @@ namespace Xamarin.Forms.GoogleMaps.Android.Extensions
         {
             return new CameraPosition(
                 self.Target.ToPosition(),
+                self.Zoom,
                 self.Bearing,
-                self.Tilt,
-                self.Zoom
+                self.Tilt
             );
+        }
+
+        public static GCameraPosition ToAndroid(this CameraPosition self)
+        {
+            return new GCameraPosition(self.Target.ToLatLng(), (float)self.Zoom, (float)self.Tilt, (float)self.Bearing);
         }
     }
 }

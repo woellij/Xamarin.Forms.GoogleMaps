@@ -1,6 +1,5 @@
 ﻿using System;
 using Google.Maps;
-
 using GCameraPosition = Google.Maps.CameraPosition;
 
 namespace Xamarin.Forms.GoogleMaps.iOS.Extensions
@@ -11,10 +10,15 @@ namespace Xamarin.Forms.GoogleMaps.iOS.Extensions
         {
             return new CameraPosition(
                     self.Target.ToPosition(),
+                    self.Zoom,
                     self.Bearing,
-                    self.ViewingAngle,
-                    self.Zoom
+                    self.ViewingAngle
             );
+        }
+
+        public static GCameraPosition ToIOS(this CameraPosition self)
+        {
+            return new GCameraPosition(self.Target.ToCoord(), (float)self.Zoom, (float)self.Bearing, (float)self.Tilt);
         }
     }
 }

@@ -8,24 +8,24 @@ using Xamarin.Forms.Platform.Android;
 using Math = System.Math;
 using Android.Util;
 using Android.App;
-using Xamarin.Forms.GoogleMaps.Internals;
 using Xamarin.Forms.GoogleMaps.Logics.Android;
 using Xamarin.Forms.GoogleMaps.Logics;
 using Xamarin.Forms.GoogleMaps.Android.Extensions;
 using Android.Widget;
 using Android.Views;
 
+using GCameraUpdateFactory = Android.Gms.Maps.CameraUpdateFactory;
 using GCameraPosition = Android.Gms.Maps.Model.CameraPosition;
 
 namespace Xamarin.Forms.GoogleMaps.Android
 {
     public class MapRenderer : ViewRenderer,
-        IMapRequestDelegate,
         GoogleMap.IOnCameraChangeListener,
         GoogleMap.IOnMapClickListener,
         GoogleMap.IOnMapLongClickListener,
         GoogleMap.IOnMyLocationButtonClickListener
     {
+        readonly CameraLogic _cameraLogic = new CameraLogic();
         readonly BaseLogic<GoogleMap>[] _logics;
 
         public MapRenderer() : base()
@@ -56,6 +56,8 @@ namespace Xamarin.Forms.GoogleMaps.Android
 
         bool _ready = false;
         bool _onLayout = false;
+
+        float _scaledDensity;
 
         public override SizeRequest GetDesiredSize(int widthConstraint, int heightConstraint)
         {
@@ -92,14 +94,20 @@ namespace Xamarin.Forms.GoogleMaps.Android
             {
                 var metrics = new DisplayMetrics();
                 activity.WindowManager.DefaultDisplay.GetMetrics(metrics);
+                _scaledDensity = metrics.ScaledDensity;
                 foreach (var logic in _logics)
-                    logic.ScaledDensity = metrics.ScaledDensity;
+                {
+                    logic.ScaledDensity = _scaledDensity;
+                }
+
+                _cameraLogic.ScaledDensity = _scaledDensity;
             }
 
             if (e.OldElement != null)
             {
                 var oldMapModel = (Map)e.OldElement;
-                Map.OnMoveToRegion = null;
+
+                _cameraLogic.Unregister();
 
                 var oldGoogleMap = await oldMapView.GetGoogleMapAsync();
                 if (oldGoogleMap != null)
@@ -120,9 +128,10 @@ namespace Xamarin.Forms.GoogleMaps.Android
                 _oldMap = (Map)e.OldElement;
             }
 
-            Map.OnMoveToRegion = ((IMapRequestDelegate)this).OnMoveToRegion;
-
             NativeMap = await ((MapView)Control).GetGoogleMapAsync();
+
+            _cameraLogic.Register(Map, NativeMap);
+
             OnMapReady(NativeMap);
         }
 
@@ -142,6 +151,7 @@ namespace Xamarin.Forms.GoogleMaps.Android
                 // map.UiSettings.MyLocationButtonEnabled = Map.IsShowingUser;
                 map.TrafficEnabled = Map.IsTrafficEnabled;
                 SetMapType();
+                SetPadding();
             }
 
             foreach (var logic in _logics)
@@ -153,35 +163,6 @@ namespace Xamarin.Forms.GoogleMaps.Android
             if (_ready && _onLayout)
             {
                 InitializeLogic();
-            }
-        }
-
-        void IMapRequestDelegate.OnMoveToRegion(MoveToRegionMessage m)
-        {
-            MoveToRegion(m.Span, m.Animate);
-        }
-
-        void MoveToRegion(MapSpan span, bool animate)
-        {
-            var map = NativeMap;
-            if (map == null)
-                return;
-
-            span = span.ClampLatitude(85, -85);
-            var ne = new LatLng(span.Center.Latitude + span.LatitudeDegrees / 2, span.Center.Longitude + span.LongitudeDegrees / 2);
-            var sw = new LatLng(span.Center.Latitude - span.LatitudeDegrees / 2, span.Center.Longitude - span.LongitudeDegrees / 2);
-            var update = CameraUpdateFactory.NewLatLngBounds(new LatLngBounds(sw, ne), 0);
-
-            try
-            {
-                if (animate)
-                    map.AnimateCamera(update);
-                else
-                    map.MoveCamera(update);
-            }
-            catch (IllegalStateException exc)
-            {
-                System.Diagnostics.Debug.WriteLine("MoveToRegion exception: " + exc);
             }
         }
 
@@ -204,12 +185,14 @@ namespace Xamarin.Forms.GoogleMaps.Android
             else if (changed && NativeMap != null)
             {
                 UpdateVisibleRegion(NativeMap.CameraPosition.Target);
+                _cameraLogic.MoveCamera(Map.InitialCameraUpdate);
             }
         }
 
         void InitializeLogic()
         {
-            MoveToRegion(((Map)Element).LastMoveToRegion, false);
+            _cameraLogic.MoveCamera(Map.InitialCameraUpdate);
+            //_cameraLogic.MoveToRegion(((Map)Element).LastMoveToRegion, false);
 
             foreach (var logic in _logics)
             {
@@ -240,6 +223,12 @@ namespace Xamarin.Forms.GoogleMaps.Android
                 return;
             }
 
+            if (e.PropertyName == Map.PaddingProperty.PropertyName)
+            {
+                SetPadding();
+                return;
+            }
+
             if (NativeMap == null)
                 return;
 
@@ -251,6 +240,10 @@ namespace Xamarin.Forms.GoogleMaps.Android
             {
                 NativeMap.UiSettings.ZoomControlsEnabled = Map.HasZoomEnabled;
                 NativeMap.UiSettings.ZoomGesturesEnabled = Map.HasZoomEnabled;
+            }
+            else if (e.PropertyName == Map.HasRotationEnabledProperty.PropertyName)
+            {
+                NativeMap.UiSettings.RotateGesturesEnabled = Map.HasRotationEnabled;
             }
             else if (e.PropertyName == Map.IsTrafficEnabledProperty.PropertyName)
             {
@@ -286,10 +279,21 @@ namespace Xamarin.Forms.GoogleMaps.Android
             }
         }
 
+        void SetPadding()
+        {
+            NativeMap?.SetPadding(
+                (int)(Map.Padding.Left * _scaledDensity), 
+                (int)(Map.Padding.Top * _scaledDensity), 
+                (int)(Map.Padding.Right * _scaledDensity),
+                (int)(Map.Padding.Bottom * _scaledDensity));
+        }
+
         public void OnCameraChange(GCameraPosition pos)
         {
             UpdateVisibleRegion(pos.Target);
-            Map.SendCameraChanged(pos.ToXamarinForms());
+            var camera = pos.ToXamarinForms();
+            Map.CameraPosition = camera;
+            Map.SendCameraChanged(camera);
         }
 
         public void OnMapClick(LatLng point)
@@ -338,11 +342,7 @@ namespace Xamarin.Forms.GoogleMaps.Android
             {
                 _disposed = true;
 
-                if (this.Map != null)
-                {
-                    //MessagingCenter.Unsubscribe<Map, MoveToRegionMessage>(this, MoveMessageName);
-                    Map.OnMoveToRegion = null;
-                }
+                _cameraLogic.Unregister();
 
                 foreach (var logic in _logics)
                     logic.Unregister(NativeMap, Map);

@@ -1,10 +1,12 @@
-## ![](logo.png) Xamarin.Forms.GoogleMaps
+## ![](logo.png) Xamarin.Forms.GoogleMaps [![Build Status](https://www.bitrise.io/app/57c1455061c4af11.svg?token=AzWRh4pkJvZ30qLQSY9Nqg&branch=master)](https://www.bitrise.io/app/57c1455061c4af11) [![Gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/Xamarin-Forms-GoogleMaps/public)
 
 [日本語の README はこちら！](README-ja.md)
 
 Yet another maps library for Xamarin.Forms that optimized for Google maps.
 
 Usage is almost the same as [Xamarin.Forms.Maps](https://www.nuget.org/packages/Xamarin.Forms.Maps), Because this is forked from [Xamarin.Forms.Maps - github](https://github.com/xamarin/Xamarin.Forms) 
+
+[<img src="https://dply.me/sjtud9/button/large" alt="Try it on your device via DeployGate">](https://dply.me/sjtud9#install)
 
 ![screenshot](screenshot01.png)
 
@@ -27,8 +29,8 @@ Furthermore, I am using Google Maps instead of MapKit because it is easy for def
 |Map types|Yes|Yes|
 |Traffic map|-|Yes|
 |Map events|-|Yes|
-|Pannning with animation|Yes|Yes|
-|Pannning directly|-|Yes|
+|Panning with animation|Yes|Yes|
+|Panning directly|-|Yes|
 |Pins|Yes|Yes|
 |Custom Pins|-|Yes|
 |Pin drag & drop|-|Yes|
@@ -39,12 +41,12 @@ Furthermore, I am using Google Maps instead of MapKit because it is easy for def
 
 For more information, see [Comparison with Xamarin.Forms.Maps](https://github.com/amay077/Xamarin.Forms.GoogleMaps/wiki/Comparison-with-Xamarin.Forms.Maps).
 
-### Setup
+## Setup
 
 * Available on NuGet: https://www.nuget.org/packages/Xamarin.Forms.GoogleMaps/ [![NuGet](https://img.shields.io/nuget/v/Xam.Plugin.Geolocator.svg?label=NuGet)](https://www.nuget.org/packages/Xamarin.Forms.GoogleMaps/)
 * Install into your PCL project and Client projects.
 
-### Platform Support
+## Platform Support
 
 |Platform|Supported|
 | ------------------- | :-----------: |
@@ -53,7 +55,7 @@ For more information, see [Comparison with Xamarin.Forms.Maps](https://github.co
 |Windows 10 UWP|Yes (Bing map)|
 |Others|No|
 
-### Usage
+## Usage
 
 Same as this
 
@@ -82,7 +84,7 @@ Sample application is here.
 
 * [XFGoogleMapSample](https://github.com/amay077/Xamarin.Forms.GoogleMaps/tree/master/XFGoogleMapSample)
 
-### Future plans
+## Future plans
 
 I will follow Xamarin.Forms.Maps API as possible. I will add new API only when I implement Google maps original feature.
 
@@ -98,7 +100,17 @@ Latest scheduled features as follows:
 You can use in Windows 10 UWP but this support is reluctant.
 Because this library has been determined to optimized for Google Maps, New features will not support in UWP.
 
-### License
+## Contribution
+
+We really appreciate your contribution.
+
+Please read the [contribution guideline](CONTRIBUTING.md).
+
+## Commmunity Chat
+
+You can join to out [gitter room](https://gitter.im/Xamarin-Forms-GoogleMaps/public)!
+
+## License
 
 See [LICENSE](LICENSE).
 
