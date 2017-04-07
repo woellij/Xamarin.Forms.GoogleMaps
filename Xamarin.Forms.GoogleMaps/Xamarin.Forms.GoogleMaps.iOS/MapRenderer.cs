@@ -93,7 +93,7 @@ namespace Xamarin.Forms.GoogleMaps.iOS
 
                 if (Control == null)
                 {
-                    SetNativeControl(new MapView(RectangleF.Empty));
+                    SetNativeControl(CreateNativeMapView());
                     var mkMapView = (MapView)Control;
                     mkMapView.CameraPositionChanged += CameraPositionChanged;
                     mkMapView.CoordinateTapped += CoordinateTapped;
@@ -120,6 +120,11 @@ namespace Xamarin.Forms.GoogleMaps.iOS
                 }
 
             }
+        }
+
+        protected virtual MapView CreateNativeMapView()
+        {
+            return new MapView(RectangleF.Empty);
         }
 
         protected override void OnElementPropertyChanged(object sender, PropertyChangedEventArgs e)
@@ -245,7 +250,7 @@ namespace Xamarin.Forms.GoogleMaps.iOS
         void UpdateIsShowingUser()
         {
             ((MapView)Control).MyLocationEnabled = ((Map)Element).IsShowingUser;
-            ((MapView)Control).Settings.MyLocationButton = ((Map)Element).IsShowingUser;
+            //((MapView)Control).Settings.MyLocationButton = ((Map)Element).IsShowingUser;
         }
 
         void UpdateIsTrafficEnabled()
